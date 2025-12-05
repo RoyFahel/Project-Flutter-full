@@ -7,10 +7,10 @@ import '../models/consultation.dart';
 
 class ApiService {
   // AWS Elastic Beanstalk URL
-  static const String baseUrl = 'http://in401-project-env.eba-y2avpucr.ap-southeast-1.elasticbeanstalk.com';
+  static const String baseUrl = 'nodejsapp-env.eba-jjpppfhc.eu-north-1.elasticbeanstalk.com';
   
   // Local development URL
-  // static const String baseUrl = 'http://localhost:3000/api';
+  // static const String baseUrl = 'http://localhost:3000';
   static Future<List<Patient>> getPatients() async {
     try {
       final response = await http.get(
