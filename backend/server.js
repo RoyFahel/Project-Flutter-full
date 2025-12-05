@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 8080;
 const corsOptions = {
   origin: [
     'http://roy-frontend-website.s3-website.eu-north-1.amazonaws.com',
-    'http://roy-frontend-website.s3-website.eu-north-1.amazonaws.com',
+    'https://roy-frontend-website.s3-website.eu-north-1.amazonaws.com',
     'http://localhost:3000',
     'http://localhost:8080'
   ],
