@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 // config/database.js
 
 const connectToMongoDB = async () => {
-  const uri = process.env.MONGO_URI || 'mongodb+srv://royfahel:Royfahel123@youtube-api.tsmesdk.mongodb.net/pharmax?retryWrites=true&w=majority&appName=spotify-api';
+  const uri = process.env.MONGO_URI || 'mongodb+srv://royfahel:Royfahel123@pharmax.tsmesdk.mongodb.net/pharmax?retryWrites=true&w=majority&appName=spotify-api';
 
   console.log('🔌 Connecting to MongoDB:', uri);
 
