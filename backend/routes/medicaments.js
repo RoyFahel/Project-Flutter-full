@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const MedicamentController = require('../controllers/medicamentController');
+const Medicament = require('../models/Medicament');
 
 // GET /api/medicaments - Get all medicaments
 router.get('/', MedicamentController.getAllMedicaments);
@@ -22,12 +23,17 @@ module.exports = router;
 
 router.get('/', async (req, res) => {
   try {
-    const medicaments = await Medicament.find({ isDeleted: false })
-      .populate('malady_id', 'maladyName')
-      .sort({ createdAt: -1 });
-    res.json({ medicaments, count: medicaments.length });
-  } catch (error) {
-    console.error('Error fetching medicaments:', error);
+    const meds = await Medicament.find({ isDeleted: false }).populate('maladyId').exec();
+    // thanks to toJSON transform they will be normalized, but ensure fallback:
+    const out = meds.map(m => ({
+      id: m.id || m._id?.toString(),
+      medicamentName: m.medicamentName || m.name || '',
+      maladyId: (m.maladyId && (m.maladyId._id || m.maladyId)) ? (m.maladyId._id ? m.maladyId._id.toString() : m.maladyId.toString()) : null,
+      createdAt: m.createdAt
+    }));
+    res.json(out);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to fetch medicaments' });
   }
 });
