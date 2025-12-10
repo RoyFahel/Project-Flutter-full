@@ -47,7 +47,7 @@ jobs:
           application_name: nodejsapp
           environment_name: nodejsapp-env
           version_label: backend-${{ github.run_number }}-${{ github.sha }}
-          deployment_package: pharmax-backend.zip
+          deployment_package: backend
           wait_for_deployment: true
           use_existing_version_if_available: true
 
