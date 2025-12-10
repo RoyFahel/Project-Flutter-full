@@ -1,10 +1,14 @@
+// server.js
 const express = require('express');
 const cors = require('cors');
+require('dotenv').config();
+const connectToMongoDB = require('./config/database'); // MongoDB connection
+
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-
+// CORS configuration
 const corsOptions = {
   origin: [
     'http://roy-frontend-website.s3-website.eu-north-1.amazonaws.com',
@@ -18,7 +22,6 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 };
 
-// CORS middleware
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
@@ -35,12 +38,11 @@ app.use((req, res, next) => {
     next();
   }
 });
-
-// Body parsing middleware
+// Body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint for Elastic Beanstalk
+// Health check endpoints
 app.get('/', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
@@ -57,7 +59,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// Additional health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
@@ -67,7 +68,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes with safe fallbacks
+// Load routes safely
 let patientRoutes, maladyRoutes, medicamentRoutes, consultationRoutes;
 
 try {
@@ -80,48 +81,36 @@ try {
   console.log('⚠️ Route files missing, using fallback routes:', err.message);
 }
 
-// Setup routes with fallbacks
-if (patientRoutes) {
-  app.use('/api/patients', patientRoutes);
-} else {
-  console.log('Using fallback patients routes');
+// Mount routes with fallbacks
+if (patientRoutes) app.use('/api/patients', patientRoutes);
+else {
   app.get('/api/patients', (req, res) => res.json([{ id: 1, name: 'John Doe', age: 30 }]));
   app.post('/api/patients', (req, res) => res.status(201).json({ id: Date.now(), ...req.body }));
-  app.put('/api/patients/:id', (req, res) => res.json({ id: req.params.id, ...req.body }));
+   app.put('/api/patients/:id', (req, res) => res.json({ id: req.params.id, ...req.body }));
   app.delete('/api/patients/:id', (req, res) => res.json({ message: 'Patient deleted', id: req.params.id }));
 }
 
-if (maladyRoutes) {
-  app.use('/api/maladies', maladyRoutes);
-} else {
-  console.log('Using fallback maladies routes');
+if (maladyRoutes) app.use('/api/maladies', maladyRoutes);
+else {
   app.get('/api/maladies', (req, res) => res.json([{ id: 1, name: 'Common Cold', severity: 'mild' }]));
   app.post('/api/maladies', (req, res) => res.status(201).json({ id: Date.now(), ...req.body }));
-  app.put('/api/maladies/:id', (req, res) => res.json({ id: req.params.id, ...req.body }));
+   app.put('/api/maladies/:id', (req, res) => res.json({ id: req.params.id, ...req.body }));
   app.delete('/api/maladies/:id', (req, res) => res.json({ message: 'Malady deleted', id: req.params.id }));
 }
 
-if (medicamentRoutes) {
-  app.use('/api/medicaments', medicamentRoutes);
-} else {
-  console.log('Using fallback medicaments routes');
+if (medicamentRoutes) app.use('/api/medicaments', medicamentRoutes);
+else {
   app.get('/api/medicaments', (req, res) => res.json([{ id: 1, name: 'Aspirin', dosage: '500mg' }]));
   app.post('/api/medicaments', (req, res) => res.status(201).json({ id: Date.now(), ...req.body }));
-  app.put('/api/medicaments/:id', (req, res) => res.json({ id: req.params.id, ...req.body }));
-  app.delete('/api/medicaments/:id', (req, res) => res.json({ message: 'Medicament deleted', id: req.params.id }));
 }
 
-if (consultationRoutes) {
-  app.use('/api/consultations', consultationRoutes);
-} else {
-  console.log('Using fallback consultations routes');
+if (consultationRoutes) app.use('/api/consultations', consultationRoutes);
+else {
   app.get('/api/consultations', (req, res) => res.json([{ id: 1, date: '2024-12-04', patient: 'John Doe' }]));
   app.post('/api/consultations', (req, res) => res.status(201).json({ id: Date.now(), ...req.body }));
-  app.put('/api/consultations/:id', (req, res) => res.json({ id: req.params.id, ...req.body }));
-  app.delete('/api/consultations/:id', (req, res) => res.json({ message: 'Consultation deleted', id: req.params.id }));
 }
 
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({ 
@@ -139,12 +128,13 @@ app.use('*', (req, res) => {
   });
 });
 
+// Connect to MongoDB first, then start server
+connectToMongoDB().then((connected) => {
+  if (!connected) console.warn('⚠️ Server running without DB connection!');
 
-
-// Start server with error handling
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 PharmaX Server running on port ${PORT}`);
-  console.log(`📍 Health check: http://localhost:${PORT}/health`);
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 PharmaX Server running on port ${PORT}`);
+     console.log(`📍 Health check: http://localhost:${PORT}/health`);
   console.log(`🌐 CORS enabled for S3 frontend`);
   console.log(`🔄 Server started at ${new Date().toISOString()}`);
 });
@@ -169,21 +159,22 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
   // Don't exit, just log the error
-});
+  });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('🛑 Received SIGTERM, shutting down gracefully');
-  server.close(() => {
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('🛑 Received SIGTERM, shutting down gracefully');
+    server.close(() => {
     console.log('✅ Server closed');
     process.exit(0);
   });
-});
-
-process.on('SIGINT', () => {
-  console.log('🛑 Received SIGINT, shutting down gracefully');
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
+})
+  process.on('SIGINT', () => {
+    console.log('🛑 Received SIGINT, shutting down gracefully');
+    server.close(() => process.exit(0));
   });
+
+  // Uncaught errors
+  process.on('uncaughtException', (err) => console.error('❌ Uncaught Exception:', err));
+  process.on('unhandledRejection', (reason, promise) => console.error('❌ Unhandled Rejection:', promise, reason));
 });
