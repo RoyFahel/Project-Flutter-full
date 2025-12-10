@@ -19,44 +19,59 @@ class Medicament {
 
   // Convert from JSON (MongoDB response)
   factory Medicament.fromJson(Map<String, dynamic> json) {
-    String? extractId(dynamic idField) {
+    String? extractId() {
+      final idField = json['_id'] ?? json['id'];
       if (idField == null) return null;
-      if (idField is Map && idField.containsKey(r'$oid')) return idField[r'$oid']?.toString();
+      
+      // Handle MongoDB ObjectId format: {"$oid": "..."}
+      if (idField is Map<String, dynamic> && idField.containsKey('\$oid')) {
+        return idField['\$oid']?.toString();
+      }
+      
+      // Handle simple string ID
       return idField.toString();
     }
 
-    String? extractMaladyId(dynamic maladyField) {
+    String? extractMaladyId() {
+      final maladyField = json['malady_id'];
       if (maladyField == null) return null;
-
-      // If populated malady object
-      if (maladyField is Map) {
-        final nestedId = maladyField['_id'] ?? maladyField['id'];
-        if (nestedId is Map && nestedId.containsKey(r'$oid')) return nestedId[r'$oid']?.toString();
-        return nestedId?.toString();
+      
+      // Handle populated malady object
+      if (maladyField is Map<String, dynamic>) {
+        final idField = maladyField['_id'] ?? maladyField['id'];
+        if (idField is Map<String, dynamic> && idField.containsKey('\$oid')) {
+          return idField['\$oid']?.toString();
+        }
+        return idField?.toString();
       }
-
-      // Fallback to string / ObjectId
+      
+      // Handle ObjectId format
+      if (maladyField is Map<String, dynamic> && maladyField.containsKey('\$oid')) {
+        return maladyField['\$oid']?.toString();
+      }
+      
       return maladyField.toString();
     }
 
-    String? extractMaladyName(dynamic maladyField) {
-      if (maladyField is Map) {
-        return maladyField['maladyName']?.toString() ?? maladyField['name']?.toString();
+    String? extractMaladyName() {
+      final maladyField = json['malady_id'];
+      if (maladyField is Map<String, dynamic>) {
+        return maladyField['maladyName']?.toString();
       }
       return null;
     }
 
     return Medicament(
-      id: extractId(json['_id'] ?? json['id']),
-      medicamentName: json['medicamentName'] ?? json['name'] ?? '',
+      id: extractId(),
+      medicamentName: json['medicamentName'] ?? '',
       description: json['description'] ?? '',
-      maladyId: extractMaladyId(json['malady_id'] ?? json['maladyId']),
-      maladyName: extractMaladyName(json['malady_id'] ?? json['maladyId']),
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'])
+      maladyId: extractMaladyId(),
+      maladyName: extractMaladyName(),
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt'])
           : null,
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.tryParse(json['updatedAt'])
+      updatedAt: json['updatedAt'] != null 
+          ? DateTime.parse(json['updatedAt'])
           : null,
     );
   }
@@ -67,10 +82,12 @@ class Medicament {
       'medicamentName': medicamentName,
       'description': description,
     };
+    
     if (maladyId != null) data['malady_id'] = maladyId;
     if (id != null) data['_id'] = id;
     if (createdAt != null) data['createdAt'] = createdAt!.toIso8601String();
     if (updatedAt != null) data['updatedAt'] = updatedAt!.toIso8601String();
+    
     return data;
   }
 
@@ -107,5 +124,7 @@ class Medicament {
   }
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode {
+    return id.hashCode;
+  }
 }
